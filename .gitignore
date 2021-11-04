@@ -4,6 +4,8 @@
 *.json
 *.db
 
+# bokeh plots
+*.html
 
 *.mp4
 

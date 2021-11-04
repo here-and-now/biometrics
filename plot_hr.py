@@ -15,9 +15,22 @@ engine = create_engine('sqlite:///garmin_summary.db')
 inspector = inspect(engine)
 cnx = engine.connect()
 
-df = pd.read_sql_table('summary', cnx)
+df = pd.read_sql('intensity_hr', cnx,index_col='timestamp')
 
 print(inspector.get_table_names())
+
+source = ColumnDataSource(df)
+
+p = figure(title='test')
+p.line(x='timestamp', y='heart_rate', source=source)
+
+print(df['heart_rate'])
+
+# l = layout([p])
+# curdoc().add_root(l)
+
+show(p)
+
 
 
 print(df)
