@@ -8,12 +8,16 @@ from bokeh.models import CustomJS, DateRangeSlider, ColumnDataSource
 from bokeh.models.formatters import DatetimeTickFormatter
 from bokeh.plotting import figure, curdoc
 import pandas as pd
-import sqlalchemy 
+from sqlalchemy import create_engine, inspect
 
 # df = pd.read
-cnx = sqlalchemy.create_engine('sqlite:///garmin_summary.db').connect()
+engine = create_engine('sqlite:///garmin_summary.db')
+inspector = inspect(engine)
+cnx = engine.connect()
 
 df = pd.read_sql_table('summary', cnx)
+
+print(inspector.get_table_names())
 
 
 print(df)
