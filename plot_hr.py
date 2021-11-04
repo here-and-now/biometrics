@@ -9,27 +9,55 @@ from bokeh.models.formatters import DatetimeTickFormatter
 from bokeh.plotting import figure, curdoc
 import pandas as pd
 from sqlalchemy import create_engine, inspect
-
-# df = pd.read
+import datetime
+# connect sql db
 engine = create_engine('sqlite:///garmin_summary.db')
-inspector = inspect(engine)
 cnx = engine.connect()
 
-df = pd.read_sql('intensity_hr', cnx,index_col='timestamp')
 
-print(inspector.get_table_names())
+df = pd.read_sql('intensity_hr', cnx,index_col='timestamp')
+# df.index= pd.to_datetime(df.index)
+# inspector = inspect(engine)
+# print(inspector.get_table_names())
 
 source = ColumnDataSource(df)
 
-p = figure(title='test')
+# bokeh plot stuff
+plot_w, plot_h = 1800, 500
+
+
+p = figure(title='Heart Rate',
+            x_axis_type='datetime',
+            plot_width=plot_w,
+            plot_height=plot_h)
+
 p.line(x='timestamp', y='heart_rate', source=source)
 
-print(df['heart_rate'])
+today = datetime.date.today()
+date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
+                                    start=today - datetime.timedelta(days=30), end=today + datetime.timedelta(days=1))
 
-# l = layout([p])
+
+def update_plots(p):
+    callback = CustomJS(args=dict(p=p), code="""
+        p.x_range.start = cb_obj.value[0]
+        p.x_range.end = cb_obj.value[1]
+        p.x_range.change.emit()
+        """)
+    return callback
+
+for plots in [p]:
+    callback = update_plots(plots)
+    date_range_slider.js_on_change('value_throttled', callback)
+
+
+l = layout([
+            [date_range_slider],
+            [p]
+])
 # curdoc().add_root(l)
 
-show(p)
+show(l)
 
 
 
