@@ -10,7 +10,8 @@ from bokeh.plotting import figure, curdoc
 import pandas as pd
 from sqlalchemy import create_engine, inspect
 import datetime
-
+import os
+from pathlib import Path
 def get_column_names():
     return [cn['name'] for cn in inspector.get_columns(table_names[rbg_tables.active])]
 
@@ -19,6 +20,7 @@ def refresh_db(attr,old,new):
     rbg_tables.update(labels=table_names)
     table = table_names[rbg_tables.active]
     df = pd.read_sql(table, cnx,index_col='timestamp')
+    df = df.sort_index()
 
     column_names = get_column_names()
     rbg_columns_x.update(labels=column_names)
@@ -34,10 +36,14 @@ def change_plot(attrname, old, new):
 
     print('Selected x: ', x)
     print('Selected y: ', y)
+    p.plot.xaxis.axis_label= x
+    p.plot.yaxis.axis_label= y
+    p.plot_height = 600
+    p.plot_width = 1800
 
     for line in list(p.renderers):
         p.renderers.remove(line)
-
+    # p.title(y)
     p.line(x=x,
            y=y,
            source=source)
@@ -59,10 +65,13 @@ date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), t
                                     end=today + datetime.timedelta(days=1))
 
 # connect sql db
-engine = create_engine('sqlite:///garmin_monitoring.db')
+# engine = create_engine('sqlite:///garmin_monitoring.db')
+
+db_path = str(Path.home()) + '/HealthData/DBs/garmin_monitoring.db'
+engine = create_engine('sqlite:////' + db_path)
 cnx = engine.connect()
 
-#inspect db and get table names
+#inspect db and get table namesMB
 inspector = inspect(engine)
 table_names = inspector.get_table_names()
 
@@ -75,18 +84,19 @@ rbg_columns_y = RadioButtonGroup(labels=column_names,active=1)
 
 # iniate dataframe and bokeh source
 active_table = table_names[rbg_tables.active]
-df = pd.read_sql(active_table, cnx,index_col='timestamp')
+
+df = pd.read_sql(active_table, cnx, index_col='timestamp')
 source = ColumnDataSource(df)
 
 refresh_db(None,None,None)
 
 plot_w, plot_h = 1800, 500
 
-p = figure(title='Heart Rate',
-            x_axis_type='datetime',
-            plot_width=plot_w,
-            plot_height=plot_h)
-
+# p = figure(title='Heart Rate',
+            # x_axis_type='datetime',
+            # plot_width=plot_w,
+            # plot_height=plot_h)
+p = figure(x_axis_type='datetime')
 change_plot(None,None,None)
 
 #date range slider callback
