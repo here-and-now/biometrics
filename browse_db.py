@@ -11,52 +11,39 @@ import pandas as pd
 from sqlalchemy import create_engine, inspect
 import datetime
 
+def get_column_names():
+    return [cn['name'] for cn in inspector.get_columns(table_names[rbg_tables.active])]
 
-# connect sql db
-engine = create_engine('sqlite:///garmin_summary.db')
-cnx = engine.connect()
 
-# Read sql into dataframe
-df = pd.read_sql('intensity_hr', cnx,index_col='timestamp')
-# df.index= pd.to_datetime(df.index)
+def refresh_db(attr,old,new):
+    rbg_tables.update(labels=table_names)
+    table = table_names[rbg_tables.active]
+    df = pd.read_sql(table, cnx,index_col='timestamp')
 
-# Inspect table names
-inspector = inspect(engine)
-table_names = inspector.get_table_names()
-# column_names = [column.name for column in cnx.columns]
+    column_names = get_column_names()
+    rbg_columns_x.update(labels=column_names)
+    rbg_columns_y.update(labels=column_names)
 
-column_names = inspector.get_columns('intensity_hr')
+    source.update(data=df)
+    
 
-print(table_names)
-print(column_names)
+def change_plot(attrname, old, new):
+    column_names = get_column_names()
+    x = column_names[rbg_columns_x.active]
+    y = column_names[rbg_columns_y.active]
 
-column_names = [cn['name'] for cn in column_names]
-print(column_names)
+    print('Selected x: ', x)
+    print('Selected y: ', y)
 
-rbg_tables = RadioButtonGroup(labels=table_names)
-rbg_columns_x = RadioButtonGroup(labels=column_names)
-rbg_columns_y = RadioButtonGroup(labels=column_names)
+    for line in list(p.renderers):
+        p.renderers.remove(line)
 
-# print(rbg_columns.active)
+    p.line(x=x,
+           y=y,
+           source=source)
 
-source = ColumnDataSource(df)
-# bokeh plot stuff
-plot_w, plot_h = 1800, 500
-
-p = figure(title='Heart Rate',
-            x_axis_type='datetime',
-            plot_width=plot_w,
-            plot_height=plot_h)
-
-p.line(x='timestamp',
-       y='heart_rate',
-       source=source)
-
-today = datetime.date.today()
-date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
-                                    start=today - datetime.timedelta(days=30),
-                                    end=today + datetime.timedelta(days=1))
-
+    # update_plots(p)
+    
 def update_plots(p):
     callback = CustomJS(args=dict(p=p), code="""
         p.x_range.start = cb_obj.value[0]
@@ -65,30 +52,52 @@ def update_plots(p):
         """)
     return callback
 
-def change_db(attrname, old, new):
-    table = table_names[rbg_tables.active]
-    df = pd.read_sql(table, cnx)
-    source = ColumnDataSource(df)
 
+today = datetime.date.today()
+date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
+                                    start=today - datetime.timedelta(days=30),
+                                    end=today + datetime.timedelta(days=1))
 
-def change_plot(attrname, old, new):
-    x = column_names[rbg_columns_x.active]
-    y = column_names[rbg_columns_y.active]
-    
-    p.line(x=x,
-           y=y,
-           source=source)
+# connect sql db
+engine = create_engine('sqlite:///garmin_monitoring.db')
+cnx = engine.connect()
 
-    update_plots(p)
-    
+#inspect db and get table names
+inspector = inspect(engine)
+table_names = inspector.get_table_names()
 
+# populate radiobuttongroups
+rbg_tables = RadioButtonGroup(labels=table_names,active=3)
+
+column_names = get_column_names()
+rbg_columns_x = RadioButtonGroup(labels=column_names,active=0)
+rbg_columns_y = RadioButtonGroup(labels=column_names,active=1)
+
+# iniate dataframe and bokeh source
+active_table = table_names[rbg_tables.active]
+df = pd.read_sql(active_table, cnx,index_col='timestamp')
+source = ColumnDataSource(df)
+
+refresh_db(None,None,None)
+
+plot_w, plot_h = 1800, 500
+
+p = figure(title='Heart Rate',
+            x_axis_type='datetime',
+            plot_width=plot_w,
+            plot_height=plot_h)
+
+change_plot(None,None,None)
+
+#date range slider callback
 for plot in [p]:
     callback = update_plots(plot)
     date_range_slider.js_on_change('value_throttled', callback)
 
-    rbg_tables.on_change('active', change_db)
-    rbg_columns_x.on_change('active', change_plot)
-    rbg_columns_y.on_change('active', change_plot)
+# radio button group change listeners
+rbg_tables.on_change('active', refresh_db)
+rbg_columns_x.on_change('active', change_plot)
+rbg_columns_y.on_change('active', change_plot)
 
 l = layout([
             [rbg_tables],
