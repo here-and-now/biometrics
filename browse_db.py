@@ -30,12 +30,16 @@ column_names = inspector.get_columns('intensity_hr')
 print(table_names)
 print(column_names)
 
-radio_button_group = RadioButtonGroup(labels=table_names)
+column_names = [cn['name'] for cn in column_names]
+print(column_names)
 
+rbg_tables = RadioButtonGroup(labels=table_names)
+rbg_columns_x = RadioButtonGroup(labels=column_names)
+rbg_columns_y = RadioButtonGroup(labels=column_names)
 
+# print(rbg_columns.active)
 
 source = ColumnDataSource(df)
-
 # bokeh plot stuff
 plot_w, plot_h = 1800, 500
 
@@ -61,19 +65,41 @@ def update_plots(p):
         """)
     return callback
 
-for plots in [p]:
-    callback = update_plots(plots)
+def change_db(attrname, old, new):
+    table = table_names[rbg_tables.active]
+    df = pd.read_sql(table, cnx)
+    source = ColumnDataSource(df)
+
+
+def change_plot(attrname, old, new):
+    x = column_names[rbg_columns_x.active]
+    y = column_names[rbg_columns_y.active]
+    
+    p.line(x=x,
+           y=y,
+           source=source)
+
+    update_plots(p)
+    
+
+for plot in [p]:
+    callback = update_plots(plot)
     date_range_slider.js_on_change('value_throttled', callback)
 
+    rbg_tables.on_change('active', change_db)
+    rbg_columns_x.on_change('active', change_plot)
+    rbg_columns_y.on_change('active', change_plot)
 
 l = layout([
-            [radio_button_group],
+            [rbg_tables],
+            [rbg_columns_x],
+            [rbg_columns_y],
             [date_range_slider],
             [p]
 ])
-# curdoc().add_root(l)
+curdoc().add_root(l)
 
-show(l)
+# show(l)
 
 
 
