@@ -129,7 +129,7 @@ l = layout([
 ])
 curdoc().add_root(l)
 
-# show(l)
+show(l)
 
 
 
