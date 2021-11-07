@@ -13,33 +13,15 @@ import datetime
 import os
 from pathlib import Path
 
+from collections import defaultdict
+
 db_dict = {'garmin': 'garmin.db',
             'activities': 'garmin_activities.db',
             'monitoring': 'garmin_monitoring.db',
             'garmin_summary': 'garmin_summary.db',
             'summary': 'summary.db'}
 
-def get_column_names():
-    return [cn['name'] for cn in inspector.get_columns(table_names[rbg_tables.active])]
-
-
-def refresh_db(attr,old,new):
-    rbg_tables.update(labels=table_names)
-    table = table_names[rbg_tables.active]
-    df = pd.read_sql(table, cnx,index_col='timestamp')
-    df = df.sort_index()
-
-    column_names = get_column_names()
-    rbg_columns_x.update(labels=column_names)
-    rbg_columns_y.update(labels=column_names)
-
-    source.update(data=df)
-    
-
 def change_plot(attrname, old, new):
-    column_names = get_column_names()
-    x = column_names[rbg_columns_x.active]
-    y = column_names[rbg_columns_y.active]
 
     print('Selected x: ', x)
     print('Selected y: ', y)
@@ -66,49 +48,28 @@ def update_plots(p):
     return callback
 
 def load_dbs():
-    dfs = {}
+    recursive_dict = lambda: defaultdict(recursive_dict)
+    dfs_dict = recursive_dict()
+
     for db, fname in db_dict.items():
         db_path = str(Path.home()) + '/HealthData/DBs/' + fname
         engine = create_engine('sqlite:////' + db_path)
         cnx = engine.connect()
-        dfs[db] = pd.read_sql_table 
+        inspector = inspect(engine)
+        table_names = inspector.get_table_names()
+        
+        for table in table_names:
+            dfs_dict[db][table] = pd.read_sql_table(table, cnx)
+            # print(dfs_dict[db][table])
 
 
 today = datetime.date.today()
 date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
                                     start=today - datetime.timedelta(days=30),
                                     end=today + datetime.timedelta(days=1))
-# connect sql db
-# engine = create_engine('sqlite:///garmin_monitoring.db')
-
-
-#inspect db and get table namesMB
-inspector = inspect(engine)
-table_names = inspector.get_table_names()
-
-# populate radiobuttongroups
-rbg_tables = RadioButtonGroup(labels=table_names,active=3)
-
-column_names = get_column_names()
-rbg_columns_x = RadioButtonGroup(labels=column_names,active=0)
-rbg_columns_y = RadioButtonGroup(labels=column_names,active=1)
-
+load_dbs()
 # iniate dataframe and bokeh source
-active_table = table_names[rbg_tables.active]
-
-df = pd.read_sql(active_table, cnx, index_col='timestamp')
-source = ColumnDataSource(df)
-
-refresh_db(None,None,None)
-
-plot_w, plot_h = 1800, 500
-
-# p = figure(title='Heart Rate',
-            # x_axis_type='datetime',
-            # plot_width=plot_w,
-            # plot_height=plot_h)
 p = figure(x_axis_type='datetime')
-change_plot(None,None,None)
 
 #date range slider callback
 for plot in [p]:
@@ -116,20 +77,13 @@ for plot in [p]:
     date_range_slider.js_on_change('value_throttled', callback)
 
 # radio button group change listeners
-rbg_tables.on_change('active', refresh_db)
-rbg_columns_x.on_change('active', change_plot)
-rbg_columns_y.on_change('active', change_plot)
-
 l = layout([
-            [rbg_tables],
-            [rbg_columns_x],
-            [rbg_columns_y],
             [date_range_slider],
             [p]
 ])
 curdoc().add_root(l)
 
-show(l)
+# show(l)
 
 
 
