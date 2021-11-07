@@ -14,6 +14,10 @@ import os
 from pathlib import Path
 
 from collections import defaultdict
+today = datetime.date.today()
+date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
+                                    start=today - datetime.timedelta(days=30),
+                                    end=today + datetime.timedelta(days=1))
 
 db_dict = {'garmin': 'garmin.db',
             'activities': 'garmin_activities.db',
@@ -52,25 +56,43 @@ def load_dbs():
     dfs_dict = recursive_dict()
 
     for db, fname in db_dict.items():
+
         db_path = str(Path.home()) + '/HealthData/DBs/' + fname
         engine = create_engine('sqlite:////' + db_path)
+
         cnx = engine.connect()
         inspector = inspect(engine)
         table_names = inspector.get_table_names()
         
+        if db == 'monitoring': 
+            idx_col='timestamp'
+        else:
+            idx_col = None
+
         for table in table_names:
-            dfs_dict[db][table] = pd.read_sql_table(table, cnx)
+            
+            dfs_dict[db][table] = pd.read_sql_table(table, cnx, index_col=idx_col)
+            dfs_dict[db][table].sort_index(inplace=True)
             # print(dfs_dict[db][table])
+    return dfs_dict
+
+def plot_anything(dfs_dict, db, table, x='timestamp', y=None, index_col=None):
+    dfs_dict[db][table]
+    source = ColumnDataSource(dfs_dict[db][table])
+    print(source.data) 
+        
+    p = figure(x_axis_type='datetime')
+    p.line(x=x,y=y,source=source)
+    
+    return p
 
 
-today = datetime.date.today()
-date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
-                                    start=today - datetime.timedelta(days=30),
-                                    end=today + datetime.timedelta(days=1))
-load_dbs()
+dfs_dict = load_dbs()
+p = plot_anything(dfs_dict, 'monitoring', 'monitoring_hr', x='timestamp', y='heart_rate')
 # iniate dataframe and bokeh source
-p = figure(x_axis_type='datetime')
 
+p.sizing_mode = 'scale_width'
+p.aspect_ratio = 3
 #date range slider callback
 for plot in [p]:
     callback = update_plots(plot)
@@ -81,6 +103,7 @@ l = layout([
             [date_range_slider],
             [p]
 ])
+l.sizing_mode = 'scale_width'
 curdoc().add_root(l)
 
 # show(l)
