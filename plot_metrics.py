@@ -27,6 +27,7 @@ date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), t
                                     start=today - datetime.timedelta(days=30),
                                     end=today + datetime.timedelta(days=1))
 
+# Callback function for DateRangeSlider
 def update_plots(p):
     callback = CustomJS(args=dict(p=p), code="""
         p.x_range.start = cb_obj.value[0]
@@ -36,7 +37,6 @@ def update_plots(p):
     return callback
 
 
-# Callback function for DateRangeSlider
 def load_dbs(db_dict):
     recursive_dict = lambda: defaultdict(recursive_dict)
     dfs_dict = recursive_dict()
@@ -65,6 +65,7 @@ def plot_anything(dfs_dict, db, table, p, x='timestamp', y=None, index_col=None)
 
     return p
 
+# Returns callback for toggle button presses
 def toggle_plots(p,name):
     gr = p.select(name=name)
     callback = CustomJS(args=dict(gr=gr), code="""
@@ -72,6 +73,7 @@ def toggle_plots(p,name):
         """)
     return callback
 
+# Plot Heart rate
 def plot_hr(dfs_dict,p):
     db = 'monitoring'
     table = 'monitoring_hr'
@@ -86,7 +88,7 @@ def plot_hr(dfs_dict,p):
 
     return p
  
-
+# Plot stress as proxy for HRV
 def plot_stress(dfs_dict,p):
     db = 'garmin'
     table = 'stress'
@@ -108,9 +110,6 @@ dfs_dict = load_dbs(db_dict)
 p = figure(x_axis_type='datetime')
 
 #Plot metrics
-# p = plot_anything(dfs_dict, 'monitoring', 'monitoring_hr',p, x='timestamp', y='heart_rate')
-# p = plot_anything(dfs_dict, 'garmin', 'stress',p, x='timestamp', y='stress')
-
 p = plot_hr(dfs_dict,p)
 p = plot_stress(dfs_dict,p)
 
@@ -119,11 +118,14 @@ p.sizing_mode = 'scale_width'
 p.aspect_ratio = 3
 
 
-# Toggle stress
+# Toggle stress/HR
 toggle_stress = Toggle(label='Stress', button_type='success')
-# Toggle stress plot button callback
 cb_stress = toggle_plots(p,'stress')
 toggle_stress.js_on_click(cb_stress)
+
+toggle_hr = Toggle(label='Heart rate', button_type='success')
+cb_hr = toggle_plots(p,'heart_rate')
+toggle_hr.js_on_click(cb_hr)
 
 #date range slider callback
 for plot in [p]:
@@ -134,7 +136,7 @@ for plot in [p]:
 l = layout([
             [date_range_slider],
             [p],
-            [toggle_stress]
+            [toggle_hr,toggle_stress]
 ])
 # Scale layout
 l.sizing_mode = 'scale_width'
