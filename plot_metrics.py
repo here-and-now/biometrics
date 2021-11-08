@@ -16,6 +16,8 @@ from bokeh.models import Line
 
 from collections import defaultdict
 
+# from bokeh.palettes import 
+
 db_dict = {'garmin': 'garmin.db',
             'activities': 'garmin_activities.db',
             'monitoring': 'garmin_monitoring.db',
@@ -102,6 +104,29 @@ def plot_stress(dfs_dict,p):
     p.vbar(x=x,top=y,source=source,name=y)
 
     return p
+
+def plot_sleep(dfs_dict,p):
+    db = 'garmin'
+    table = 'sleep'
+    index_col = 'day'
+    start = 'start'
+    end = 'end'
+
+    dfs_dict[db][table] = dfs_dict[db][table].set_index(index_col).sort_index()
+    
+    dfs_dict[db][table].dropna(inplace=True)
+    source = ColumnDataSource(dfs_dict[db][table])
+    print(source.data)
+    y_offset = -5 
+    p.circle(x=start,
+             y=y_offset,
+             source=source,
+             marker='star', colow='yellow')
+    p.scatter(x=end,
+             y=y_offset,
+             source=source, marker='star_dot', color='yellow')
+
+    return p
     
 # Load dbs into pandas dicts
 dfs_dict = load_dbs(db_dict)
@@ -112,6 +137,7 @@ p = figure(x_axis_type='datetime')
 #Plot metrics
 p = plot_hr(dfs_dict,p)
 p = plot_stress(dfs_dict,p)
+p = plot_sleep(dfs_dict,p)
 
 #Aesthetics
 p.sizing_mode = 'scale_width'
