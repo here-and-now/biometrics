@@ -68,9 +68,7 @@ def toggle_plots(p,gr):
     # name = 'stress'
     # gr = p.select(name=name)
     callback = CustomJS(args=dict(gr=gr,p=p), code="""
-        console.log('toggle: active=' + this.active, this.toString())
-        p.visible = this.active
-        p.change.emit()
+        gr[0].visible = this.active
         """)
     return callback
 
