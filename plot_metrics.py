@@ -22,11 +22,11 @@ db_dict = {'garmin': 'garmin.db',
             'garmin_summary': 'garmin_summary.db',
             'summary': 'summary.db'}
 
-
 today = datetime.date.today()
 date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
                                     start=today - datetime.timedelta(days=30),
                                     end=today + datetime.timedelta(days=1))
+
 def update_plots(p):
     callback = CustomJS(args=dict(p=p), code="""
         p.x_range.start = cb_obj.value[0]
@@ -54,6 +54,7 @@ def load_dbs(db_dict):
             # print(dfs_dict[db][table])
     return dfs_dict
 
+
 def plot_anything(dfs_dict, db, table, p, x='timestamp', y=None, index_col=None):
     if index_col == None:
         index_col = x
@@ -64,47 +65,81 @@ def plot_anything(dfs_dict, db, table, p, x='timestamp', y=None, index_col=None)
 
     return p
 
-def toggle_plots(p,gr):
-    # name = 'stress'
-    # gr = p.select(name=name)
-    callback = CustomJS(args=dict(gr=gr,p=p), code="""
+def toggle_plots(p,name):
+    gr = p.select(name=name)
+    callback = CustomJS(args=dict(gr=gr), code="""
         gr[0].visible = this.active
         """)
     return callback
 
+def plot_hr(dfs_dict,p):
+    db = 'monitoring'
+    table = 'monitoring_hr'
+    index_col = 'timestamp'
+    x = 'timestamp'
+    y = 'heart_rate'
 
+    dfs_dict[db][table] = dfs_dict[db][table].set_index(index_col).sort_index()
+    source = ColumnDataSource(dfs_dict[db][table])
+    
+    p.line(x=x,y=y,source=source,name=y, color='red')
+
+    return p
+ 
+
+def plot_stress(dfs_dict,p):
+    db = 'garmin'
+    table = 'stress'
+    index_col = 'timestamp'
+    x = 'timestamp'
+    y = 'stress'
+
+    dfs_dict[db][table] = dfs_dict[db][table].set_index(index_col).sort_index()
+    source = ColumnDataSource(dfs_dict[db][table])
+    
+    p.vbar(x=x,top=y,source=source,name=y)
+
+    return p
+    
+# Load dbs into pandas dicts
+dfs_dict = load_dbs(db_dict)
+
+#Initiate figure
 p = figure(x_axis_type='datetime')
 
-dfs_dict = load_dbs(db_dict)
-p = plot_anything(dfs_dict, 'monitoring', 'monitoring_hr',p, x='timestamp', y='heart_rate')
-p = plot_anything(dfs_dict, 'garmin', 'stress',p, x='timestamp', y='stress')
+#Plot metrics
+# p = plot_anything(dfs_dict, 'monitoring', 'monitoring_hr',p, x='timestamp', y='heart_rate')
+# p = plot_anything(dfs_dict, 'garmin', 'stress',p, x='timestamp', y='stress')
 
+p = plot_hr(dfs_dict,p)
+p = plot_stress(dfs_dict,p)
 
+#Aesthetics
 p.sizing_mode = 'scale_width'
 p.aspect_ratio = 3
 
-plots = [p]
 
-
-# cb = toggle_plots(p, 'stress')
-gr = p.select(name='stress')
-cb = toggle_plots(p,gr)
+# Toggle stress
 toggle_stress = Toggle(label='Stress', button_type='success')
-# toggle_stress.js_on_event('ButtonClick', cb)
-toggle_stress.js_on_click(cb)
+# Toggle stress plot button callback
+cb_stress = toggle_plots(p,'stress')
+toggle_stress.js_on_click(cb_stress)
 
 #date range slider callback
-for plot in plots:
+for plot in [p]:
     callback = update_plots(plot)
     date_range_slider.js_on_change('value_throttled', callback)
 
-
+#Layout
 l = layout([
             [date_range_slider],
             [p],
             [toggle_stress]
 ])
+# Scale layout
 l.sizing_mode = 'scale_width'
+
+
 curdoc().add_root(l)
 
 # show(l)
