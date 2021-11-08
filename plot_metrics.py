@@ -42,7 +42,6 @@ def load_dbs(db_dict):
     dfs_dict = recursive_dict()
 
     for db, fname in db_dict.items():
-
         db_path = str(Path.home()) + '/HealthData/DBs/' + fname
         engine = create_engine('sqlite:////' + db_path)
 
@@ -51,34 +50,30 @@ def load_dbs(db_dict):
         table_names = inspector.get_table_names()
         
         for table in table_names:
-            
             dfs_dict[db][table] = pd.read_sql_table(table, cnx)
             # print(dfs_dict[db][table])
     return dfs_dict
 
 def plot_anything(dfs_dict, db, table, p, x='timestamp', y=None, index_col=None):
-    
     if index_col == None:
         index_col = x
     
     dfs_dict[db][table] = dfs_dict[db][table].set_index(index_col).sort_index()
     source = ColumnDataSource(dfs_dict[db][table])
-    print(source.data) 
-        
     p.line(x=x,y=y,source=source,name=y)
 
     return p
 
-def toggle_plots(p, name):
-    gr = p.select(name=name)
-    callback = CustomJS(args=dict(gr=gr), code="""
-        gr.visible = False
+def toggle_plots(p,gr):
+    # name = 'stress'
+    # gr = p.select(name=name)
+    callback = CustomJS(args=dict(gr=gr,p=p), code="""
+        console.log('toggle: active=' + this.active, this.toString())
+        p.visible = this.active
+        p.change.emit()
         """)
-    print(gr)
-    print("SUP")
     return callback
 
-# allback = CustomJS()
 
 p = figure(x_axis_type='datetime')
 
@@ -93,10 +88,12 @@ p.aspect_ratio = 3
 plots = [p]
 
 
-
-cb = toggle_plots(p, 'stress')
+# cb = toggle_plots(p, 'stress')
+gr = p.select(name='stress')
+cb = toggle_plots(p,gr)
 toggle_stress = Toggle(label='Stress', button_type='success')
-toggle_stress.js_on_event('ButtonClick', cb)
+# toggle_stress.js_on_event('ButtonClick', cb)
+toggle_stress.js_on_click(cb)
 
 #date range slider callback
 for plot in plots:
