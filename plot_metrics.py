@@ -63,19 +63,6 @@ def load_dbs(db_dict):
             # print(dfs_dict[db][table])
     return dfs_dict
 
-def plot_anything(dfs_dict, db, table, p, x='timestamp', y=None, index_col=None):
-    if index_col == None:
-        index_col = x
-    
-    df = dfs_dict[db][table]
-    df = df.set_index(index_col).sort_index().dropna()
-    source = ColumnDataSource(df)
-
-    p.line(x=x,y=y,source=source,name=y)
-
-    return p
-
-
 # Plot Heart rate
 def plot_hr(dfs_dict,p):
     db = 'monitoring'
@@ -89,7 +76,7 @@ def plot_hr(dfs_dict,p):
     source = ColumnDataSource(df)
 
     
-    p.line(x=x,y=y,source=source,name=y, color='red')
+    p.line(x=x,y=y,source=source,name=y, color='red', legend_label='Heart rate')
 
     return p
  
@@ -106,7 +93,7 @@ def plot_stress(dfs_dict,p):
     source = ColumnDataSource(df)
 
     
-    p.vbar(x=x,top=y,source=source,name=y)
+    p.vbar(x=x,top=y,source=source,name=y, legend_label='Stress', alpha=0.5, color='gray')
 
     return p
 
@@ -143,7 +130,6 @@ def plot_sleep(dfs_dict,p):
     return p
 
 
-
 def plot_sleep_metrics(dfs_dict,p=None):
     db = 'garmin'
     table = 'sleep'
@@ -171,16 +157,14 @@ dfs_dict = load_dbs(db_dict)
 
 #Initiate figure
 p = figure(x_axis_type='datetime')
-
-
 p_sleep = plot_sleep_metrics(dfs_dict)
-
 
 #Plot metrics
 p = plot_hr(dfs_dict,p)
-p = plot_stress(dfs_dict,p)
+P = plot_stress(dfs_dict,p)
 p = plot_sleep(dfs_dict,p)
-
+p.legend.location = 'top_right'
+p.legend.click_policy="hide"
 #Aesthetics
 p.sizing_mode = 'scale_width'
 p.aspect_ratio = 3
