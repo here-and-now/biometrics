@@ -4,7 +4,7 @@ from bokeh.models import HoverTool
 from bokeh.models.axes import LinearAxis
 from bokeh.layouts import layout
 from bokeh.io import show
-from bokeh.models import CustomJS, DateRangeSlider, ColumnDataSource, CheckboxButtonGroup, RadioButtonGroup, Toggle, Label, LabelSet, Span
+from bokeh.models import CustomJS, DateRangeSlider, ColumnDataSource, CheckboxButtonGroup, RadioButtonGroup, Toggle, Label, LabelSet, Span, Whisker
 from bokeh.models.formatters import DatetimeTickFormatter
 from bokeh.plotting import figure, curdoc
 import pandas as pd
@@ -50,12 +50,30 @@ def plot_dnb(df):
     p = figure(x_axis_type='datetime')
     for nback in nbacks:
         df_sel = df.loc[df['dnb'] == nback]
-        group = df_sel.groupby([df_sel.index.date])
+        groups = df_sel.groupby([df_sel.index.date])
 
-        source = ColumnDataSource(df_sel)
-      
-        p.scatter(x=group.mean().index,
-                  y=group.mean()['score'],
+        # source = ColumnDataSource(df_sel)
+        
+        daily_mean, daily_min, daily_max = groups.mean(), groups.min(), groups.max()
+        daily_std = groups.std()
+        
+        lower = daily_mean - daily_std
+        upper = daily_mean + daily_std
+
+        print(lower)
+        print(upper)
+        source = ColumnDataSource(data=dict(score=, lower=lower, upper=upper))
+        p.add_layout(Whisker(base=upper.index,upper=upper.score, lower=lower.score))
+
+        p.scatter(x=daily_mean.index,
+                  y=daily_mean['score'],
+                  legend_label=nback) 
+        p.scatter(x=daily_min.index,
+                  y=daily_min['score'],
+                  legend_label=nback) 
+
+        p.scatter(x=daily_max.index,
+                  y=daily_max['score'],
                   legend_label=nback) 
 
     return p
@@ -97,5 +115,33 @@ curdoc().add_root(l)
 
 # show(l)
 
+
+###### garbage whisker
+        # q1 = groups.quantile(q=0.25)
+        # q2 = groups.quantile(q=0.5)
+        # q3 = groups.quantile(q=0.75)
+        # iqr = q3 - q1
+        # upper = q3 + 1.5*iqr
+        # lower = q1 - 1.5*iqr
+        # print(upper)
+
+        # qmin = groups.quantile(q=0.00)
+        # qmax = groups.quantile(q=1.00)
+        # print("-----------------" , qmin)
+        # upper.score = [min([x,y]) for (x,y) in zip(list(qmax.iloc[:,0]),upper.score)]
+        # lower.score = [max([x,y]) for (x,y) in zip(list(qmin.iloc[:,0]),lower.score)]
+
+        # print(upper.score)
+        # p.segment(upper.index, upper.score, upper.index, q3.score, line_width=2, line_color="black")
+        # p.segment(lower.index, lower.score, lower.index, q1.score, line_width=2, line_color="black")
+
+
+        # p.vbar(q2.index, 0.7, q2.score, q3.score, fill_color="#E08E79", line_color="black")
+        # p.vbar(q1.index, 0.7, q1.score, q2.score, fill_color="#3B8686", line_color="black")
+
+
+        # p.rect(lower.index, lower.score, 0.2, 0.01, line_color="black")
+        # p.rect(upper.index, upper.score, 0.2, 0.01, line_color="black")
+## garbage end
 
 
