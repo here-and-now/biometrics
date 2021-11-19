@@ -60,10 +60,9 @@ def plot_dnb(df):
         lower = daily_mean - daily_std
         upper = daily_mean + daily_std
 
-        print(lower)
-        print(upper)
-        source = ColumnDataSource(data=dict(score=, lower=lower, upper=upper))
-        p.add_layout(Whisker(base=upper.index,upper=upper.score, lower=lower.score))
+        source = ColumnDataSource(data=dict(base=lower.index,lower=lower.score, upper=upper.score))
+        p.add_layout(Whisker(source=source,base='base', upper='upper',lower='lower'))
+
 
         p.scatter(x=daily_mean.index,
                   y=daily_mean['score'],
@@ -76,6 +75,7 @@ def plot_dnb(df):
                   y=daily_max['score'],
                   legend_label=nback) 
 
+        p.add_layout(Whisker(source=source,base='time', upper='upper',lower='lower'))
     return p
 
 # Pandas df stuff
