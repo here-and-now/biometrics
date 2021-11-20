@@ -39,7 +39,8 @@ def toggle_plots(p,name):
     return callback
 
 def plot_dnb(df):
-    p = figure(x_axis_type='datetime')
+    tool = [('d', '$metric.score'), ('a', '$index')]
+    p = figure(x_axis_type='datetime', tooltips=tool)
 
     for nback in df['dnb'].unique():
         
@@ -59,21 +60,25 @@ def plot_dnb(df):
         
         # plot daily stuff
         sizes = [groups.size(), 8, 8]
+        markers = ['hex', 'inverted_triangle', 'triangle']
         for index,metric in enumerate([daily_mean,daily_min,daily_max]):
             p.scatter(x=metric.index,
                       y=metric['score'],
                       size=sizes[index],
-                      legend_label=nback) 
+                      marker=markers[index],
+                      legend_label=nback)
+        # p.hover([("daily_mean", "$score")])
 
     return p
 
 # Pandas df stuff
+brain_file = str(Path.home()) + '/.brainworkshop/data/stats.txt'
 brain_columns = ['time', 'dnb', 'percent', 'mode', 'back', 'ticks_per_trial', 'num_trials_total',
               'manual','session_number','pos1','audio','color','visvis','audiovis', 'arithmetic',
               'image','visaudio','audio2','pos2','pos3','pos4','vis1','vis2','vis3','vis4',
-              'ticks_per_trial_times_tick_duration_times_num_trials_total','None']
+              'tickstimesnumtimestrials','None']
 
-df = pd.read_csv(str(Path.home()) + '/.brainworkshop/data/stats.txt', names=brain_columns)
+df = pd.read_csv(brain_file, names=brain_columns)
 
 # convert to datetime and sort 
 df['time'] = pd.to_datetime(df['time'])
