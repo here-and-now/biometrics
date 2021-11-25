@@ -14,6 +14,8 @@ import os
 from pathlib import Path
 from bokeh.models import Line
 
+from plot_dualnback import plot_dnb
+
 from collections import defaultdict
 
 # from bokeh.palettes import 
@@ -163,11 +165,14 @@ p_sleep = plot_sleep_metrics(dfs_dict)
 p = plot_hr(dfs_dict,p)
 P = plot_stress(dfs_dict,p)
 p = plot_sleep(dfs_dict,p)
+
 p.legend.location = 'top_right'
 p.legend.click_policy="hide"
 #Aesthetics
 p.sizing_mode = 'scale_width'
 p.aspect_ratio = 3
+
+p_dnb = plot_dnb()
 
 
 # Toggle stress/HR
@@ -189,7 +194,7 @@ l = layout([
             [date_range_slider],
             [p],
             [toggle_hr,toggle_stress],
-            [p_sleep]
+            [p_sleep, p_dnb]
 ])
 # Scale layout
 l.sizing_mode = 'scale_width'
