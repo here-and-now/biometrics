@@ -31,14 +31,6 @@ date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), t
                                     start=today - datetime.timedelta(days=30),
                                     end=today + datetime.timedelta(days=1))
 
-# Callback function for DateRangeSlider
-def update_plots(p):
-    callback = CustomJS(args=dict(p=p), code="""
-        p.x_range.start = cb_obj.value[0]
-        p.x_range.end = cb_obj.value[1]
-        p.x_range.change.emit()
-        """)
-    return callback
 
 # Returns callback for toggle button presses
 def toggle_plots(p,name):
@@ -184,13 +176,43 @@ toggle_hr = Toggle(label='Heart rate', button_type='success')
 cb_hr = toggle_plots(p,'heart_rate')
 toggle_hr.js_on_click(cb_hr)
 
+# Callback function for DateRangeSlider
+def update_plots(p):
+    callback = CustomJS(args=dict(p=p), code="""
+        p.x_range.start = cb_obj.value[0]
+        p.x_range.end = cb_obj.value[1]
+        p.x_range.change.emit()
+        """)
+    return callback
+
+
+date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
+                                    start=today - datetime.timedelta(days=30),
+                                    end=today + datetime.timedelta(days=1))
+
+radio_button_group = RadioButtonGroup(labels = ['1d', '3d', '7d'],active=0)
+def ups(p):
+    yday = today - datetime.timedelta(days=3)
+    tod = today - datetime.timedelta(days=1)
+    callback = CustomJS(args=dict(p=p, tod=today, yday=yday), code="""
+        p.x_range.start = yday
+        
+        p.x_range.end = tod
+        p.x_range.change.emit()
+        console.log('ficker')
+    """)
+    return callback
+cb = ups(p)
+radio_button_group.js_on_click(cb)
+
+
 #date range slider callback
 for plot in [p]:
     callback = update_plots(plot)
     date_range_slider.js_on_change('value_throttled', callback)
 
 #Layout
-l = layout([
+l = layout([[radio_button_group],
             [date_range_slider],
             [p],
             [toggle_hr,toggle_stress],
