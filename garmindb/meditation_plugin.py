@@ -24,7 +24,7 @@ def create_activity_view(cls, act_db):
         cls.hrv_pnn50.label('hrv_pnn50'),
         cls.hrv_pnn20.label('hrv_pnn20')
     ]
-    view_name = 'hrv_activities_view'
+    view_name = 'meditation_activities_view'
     logger.info("Creating hrv plugin view %s if needed.", view_name)
     cls.create_join_view(act_db, view_name, view_selectable, cls.activities_table, order_by=cls.activities_table.start_time.desc())
 

@@ -85,7 +85,6 @@ def plot_stress(dfs_dict,p):
     df = dfs_dict[db][table]
     df = df.set_index(index_col).sort_index().dropna()
     source = ColumnDataSource(df)
-
     
     p.vbar(x=x,top=y,source=source,name=y, legend_label='Stress', alpha=0.5, color='gray')
 
@@ -145,7 +144,26 @@ def plot_sleep_metrics(dfs_dict,p=None):
 
     return p
 
- 
+ def plot_meditation(dfs_dict,p=None):
+    db = 'garmin_activities'
+    table = 'meditation_sessions'
+    index_col = 'timestamp'
+    start = 'start'
+    end = 'end'
+    total_sleep = 'total_sleep'
+    
+    df = dfs_dict[db][table]
+    df = df.set_index(index_col).sort_index().dropna()
+
+    
+    source = ColumnDataSource(df)
+
+    p = figure(x_axis_type='datetime')
+    p.scatter(x='day', y='total_sleep', size='norm', source=source)
+
+    return p
+
+
 # Load dbs into pandas dicts
 dfs_dict = load_dbs(db_dict)
 
@@ -165,7 +183,7 @@ p.sizing_mode = 'scale_width'
 p.aspect_ratio = 3
 
 p_dnb = plot_dnb()
-
+p_med = plot_meditation()
 
 # Toggle stress/HR
 toggle_stress = Toggle(label='Stress', button_type='success')
@@ -179,6 +197,7 @@ toggle_hr.js_on_click(cb_hr)
 # Callback function for DateRangeSlider
 def update_plots(p):
     callback = CustomJS(args=dict(p=p), code="""
+        console.log(cb_obj.value[0])
         p.x_range.start = cb_obj.value[0]
         p.x_range.end = cb_obj.value[1]
         p.x_range.change.emit()
@@ -189,22 +208,26 @@ def update_plots(p):
 date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
                                     start=today - datetime.timedelta(days=30),
                                     end=today + datetime.timedelta(days=1))
-
 radio_button_group = RadioButtonGroup(labels = ['1d', '3d', '7d'],active=0)
-def ups(p):
-    yday = today - datetime.timedelta(days=3)
-    tod = today - datetime.timedelta(days=1)
-    callback = CustomJS(args=dict(p=p, tod=today, yday=yday), code="""
+
+
+#########################################################################
+# Not working atm
+def radio_button_change_range(p):
+    yday_ = today - datetime.timedelta(days=21)
+    tod_ = today - datetime.timedelta(days=3)
+    yday = int(time.mktime(yday_.timetuple()))
+    tod = int(time.mktime(tod_.timetuple()))
+    
+    callback = CustomJS(args=dict(p=p, tod=tod, yday=yday), code="""
         p.x_range.start = yday
-        
         p.x_range.end = tod
         p.x_range.change.emit()
-        console.log('ficker')
     """)
     return callback
-cb = ups(p)
-radio_button_group.js_on_click(cb)
-
+cb = radio_button_change_range(p)
+radio_button_group.js_on_change("active", cb)
+#########################################################################
 
 #date range slider callback
 for plot in [p]:
@@ -220,7 +243,6 @@ l = layout([[radio_button_group],
 ])
 # Scale layout
 l.sizing_mode = 'scale_width'
-
 
 curdoc().add_root(l)
 
