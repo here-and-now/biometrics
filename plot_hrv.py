@@ -1,3 +1,8 @@
+import datetime
+import os
+import pandas as pd
+
+
 from bokeh.plotting import figure,show
 from bokeh.io import save
 from bokeh.models import HoverTool
@@ -7,16 +12,12 @@ from bokeh.io import show
 from bokeh.models import CustomJS, DateRangeSlider, ColumnDataSource, CheckboxButtonGroup, RadioButtonGroup, Toggle, Label, LabelSet, Span
 from bokeh.models.formatters import DatetimeTickFormatter
 from bokeh.plotting import figure, curdoc
-import pandas as pd
+from bokeh.models import Line 
+from bokeh.models.ranges import Range1d
+
 from sqlalchemy import create_engine, inspect
-import datetime
-import os
-from pathlib import Path
-from bokeh.models import Line
-
-from plot_dualnback import plot_dnb
-
 from collections import defaultdict
+from pathlib import Path
 
 # from bokeh.palettes import 
 
@@ -30,8 +31,6 @@ today = datetime.date.today()
 date_range_slider = DateRangeSlider(value=(today - datetime.timedelta(days=7), today),
                                     start=today - datetime.timedelta(days=30),
                                     end=today + datetime.timedelta(days=1))
-
-
 
 def load_dbs(db_dict):
     recursive_dict = lambda: defaultdict(recursive_dict)
@@ -61,8 +60,8 @@ def plot_hrv_metrics(dfs_dict, activity, p=None):
 
     source = ColumnDataSource(df)
     
-    p = figure(x_axis_type='datetime')
-    
+    p = figure(x_axis_type='datetime', y_range=(0,200))
+
     p.line(x='timestamp', y='hrv_rmssd', source=source, color='black', width=width_high, alpha=1, legend_label='RMSSD')
 
     p.line(x='timestamp', y='hrv_pnn20', source=source, color='red', dash='dotted', width=width_low, alpha=alpha_high, legend_label='pnn20')
@@ -73,9 +72,15 @@ def plot_hrv_metrics(dfs_dict, activity, p=None):
     
     p.line(x='timestamp', y='min_hr', source=source, color='orange', dash='dashdot', width=width_low, alpha=alpha_low, legend_label='min_hr')
     
+    if activity=='meditation_sessions':
+        p.extra_y_ranges = {'time': Range1d(start=0, end=35) }
+        p.add_layout(LinearAxis(y_range_name='time'), 'right')
+        p.vbar(x='timestamp', top='elapsed_time', source=source, bottom=0,y_range_name='time')
+    
     # p.line(x='timestamp', y='hrv_btb', source=source, color='green')
     # p.line(x='timestamp', y='stress_hrpa', source=source)
     return p
+
 
 alpha_low = 0.5
 alpha_high = 0.7
@@ -105,12 +110,12 @@ l = layout([
             [p_meditation],
             [p_test_hrv]
 ])
+
 # Scale layout
 l.sizing_mode = 'scale_width'
 
 curdoc().add_root(l)
 
-# show(l)
 
 
 
