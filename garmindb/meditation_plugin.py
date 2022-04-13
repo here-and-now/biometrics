@@ -1,5 +1,5 @@
 import logging
-from sqlalchemy import Integer, Float, DateTime, String, ForeignKey
+from sqlalchemy import Integer, Float, DateTime, String, ForeignKey, Time
 
 from garmindb import ActivityFitPluginBase
 
@@ -54,6 +54,8 @@ class meditation(ActivityFitPluginBase):
     _sessions_cols = {
         'activity_id': {'args': [String, ForeignKey('activities.activity_id')], 'kwargs': {'primary_key': True}},
         'timestamp': {'args': [DateTime]},
+        'start_time': {'args': [DateTime]},
+        'elapsed_time': {'args': [Time]},
         'min_hr': {'args': [Integer], 'units': 'bpm'},
         'stress_hrpa': {'args': [Float], 'units': '%'},
         'hrv_rmssd': {'args': [Float], 'units': 'ms'},
@@ -91,6 +93,8 @@ class meditation(ActivityFitPluginBase):
             session = {
                 'activity_id'   : activity_id,
                 'timestamp'     : fit_file.utc_datetime_to_local(message_fields.timestamp),
+                'start_time'     : fit_file.utc_datetime_to_local(message_fields.start_time),
+                'elapsed_time'     : fit_file.utc_datetime_to_local(message_fields.total_elapsed_time),
                 'min_hr'        : message_fields.get('dev_min_hr'),
                 'stress_hrpa'   : message_fields.get('dev_stress_hrpa'),
                 'hrv_rmssd'     : message_fields.get('dev_hrv_rmssd'),
