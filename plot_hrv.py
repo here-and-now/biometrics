@@ -57,6 +57,9 @@ def plot_hrv_metrics(dfs_dict, activity, p=None):
     
     df = dfs_dict[db][table]
     df = df.set_index(index_col).sort_index()#.dropna()
+    
+    #convert datetime.time object to total minutes
+    df['total_minutes'] = pd.to_timedelta(df['elapsed_time'].astype(str)).dt.total_seconds() / 60
 
     source = ColumnDataSource(df)
     
@@ -75,7 +78,7 @@ def plot_hrv_metrics(dfs_dict, activity, p=None):
     if activity=='meditation_sessions':
         p.extra_y_ranges = {'time': Range1d(start=0, end=35) }
         p.add_layout(LinearAxis(y_range_name='time'), 'right')
-        p.vbar(x='timestamp', top='elapsed_time', source=source, bottom=0,y_range_name='time')
+        p.vbar(x='timestamp', top='total_minutes', source=source, bottom=0,y_range_name='time')
     
     # p.line(x='timestamp', y='hrv_btb', source=source, color='green')
     # p.line(x='timestamp', y='stress_hrpa', source=source)
