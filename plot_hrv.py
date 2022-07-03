@@ -1,7 +1,9 @@
 import datetime
 import os
 import pandas as pd
+import numpy as np
 
+import scipy.stats as stats
 
 from bokeh.plotting import figure,show
 from bokeh.io import save
@@ -12,8 +14,9 @@ from bokeh.io import show
 from bokeh.models import CustomJS, DateRangeSlider, ColumnDataSource, CheckboxButtonGroup, RadioButtonGroup, Toggle, Label, LabelSet, Span
 from bokeh.models.formatters import DatetimeTickFormatter
 from bokeh.plotting import figure, curdoc
-from bokeh.models import Line 
+from bokeh.models import Line
 from bokeh.models.ranges import Range1d
+# from bokeh.charts import Histogram
 
 from sqlalchemy import create_engine, inspect
 from collections import defaultdict
@@ -57,7 +60,6 @@ def plot_hrv_metrics(dfs_dict, activity, p=None):
     
     df = dfs_dict[db][table]
     df = df.set_index(index_col).sort_index()#.dropna()
-    
     #convert datetime.time object to total minutes
     df['total_minutes'] = pd.to_timedelta(df['elapsed_time'].astype(str)).dt.total_seconds() / 60
 
@@ -78,10 +80,40 @@ def plot_hrv_metrics(dfs_dict, activity, p=None):
     if activity=='meditation_sessions':
         p.extra_y_ranges = {'time': Range1d(start=0, end=35) }
         p.add_layout(LinearAxis(y_range_name='time'), 'right')
-        p.vbar(x='timestamp', top='total_minutes', source=source, bottom=0,y_range_name='time')
+        p.vbar(x='timestamp', top='total_minutes', source=source, bottom=0, width=100, y_range_name='time')
     
     # p.line(x='timestamp', y='hrv_btb', source=source, color='green')
     # p.line(x='timestamp', y='stress_hrpa', source=source)
+    return p
+
+def hrv_pdf(dfs_dict, activity, p=None):
+    db = 'activities'
+    table = activity
+    index_col = 'timestamp'
+    
+    df = dfs_dict[db][table]
+    df = df.set_index(index_col).sort_index().dropna()
+    #convert datetime.time object to total minutes
+    df['total_minutes'] = pd.to_timedelta(df['elapsed_time'].astype(str)).dt.total_seconds() / 60
+
+    # mean, var, skew, kurt = norm.stats(moments='mvsk')
+    # pdf = stats.norm.pdf(df['hrv_rmssd'].sort_values(), df['hrv_rmssd'].mean(), df['hrv_rmssd'].std())
+
+    hist, edges = np.histogram(df['hrv_rmssd'], density=True, bins=100)
+
+    rms = pd.DataFrame({'hrv_rmssd': hist,
+                        'left': edges[:-1],
+                        'right': edges[1:]})
+    p = figure()
+    p.quad(bottom=0, top=rms['hrv_rmssd'], left=rms['left'], right=rms['right'])
+
+
+    # source = ColumnDataSource(df)
+
+    
+    
+
+    # p.line(df['elapsed_time'].sort_values(), pdf)
     return p
 
 
@@ -98,6 +130,8 @@ dfs_dict = load_dbs(db_dict)
 p_meditation = plot_hrv_metrics(dfs_dict, 'meditation_sessions')
 p_test_hrv = plot_hrv_metrics(dfs_dict, 'test_hrv_sessions')
 
+p_pdf = hrv_pdf(dfs_dict, 'test_hrv_sessions')
+
 p_meditation.title = 'Meditation'
 p_test_hrv.title = 'Test HRV'
 
@@ -111,7 +145,9 @@ for p in [p_meditation, p_test_hrv]:
 #Layout
 l = layout([
             [p_meditation],
-            [p_test_hrv]
+            [p_pdf],
+            [p_test_hrv],
+            
 ])
 
 # Scale layout
